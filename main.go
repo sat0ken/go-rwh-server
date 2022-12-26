@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,8 +21,10 @@ func main() {
 
 	go func() {
 		if ishttp0_9 {
+			fmt.Println("Listen HTTP/0.9 on 127.0.0.1:18888...")
 			http0_9()
 		} else if ishttp1_0 {
+			fmt.Println("Listen HTTP/1.0 on 127.0.0.1:18888...")
 			http1_0()
 		}
 	}()
