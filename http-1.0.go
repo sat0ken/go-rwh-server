@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -36,14 +37,20 @@ func splitHeaderStr(headerstr string) string {
 	return tmp[1]
 }
 
-func authBasicHeader(basicstr string) {
+func authBasicHeader(basicstr string) error {
 	tmp := strings.Split(basicstr, " ")
 	decode, _ := base64.StdEncoding.DecodeString(tmp[1])
 	tmp = strings.Split(string(decode), ":")
 	fmt.Printf("encoding is user is %s, pass is %s\n", tmp[0], tmp[1])
+	if tmp[0] != "user" {
+		return errors.New("user is not correct")
+	} else if tmp[1] != "pass" {
+		return errors.New("password is not correct")
+	}
+	return nil
 }
 
-func parseBuf(recv string) httpHeader {
+func parseBuf(recv string) (httpHeader, error) {
 	var header httpHeader
 	http := strings.Split(recv, "\r\n")
 	// fmt.Printf("recv http is %+v\n", http)
@@ -57,7 +64,10 @@ func parseBuf(recv string) httpHeader {
 		} else if strings.Contains(v, "Host") {
 			header.host = splitHeaderStr(v)
 		} else if strings.Contains(v, "Authorization") {
-			authBasicHeader(splitHeaderStr(v))
+			err := authBasicHeader(splitHeaderStr(v))
+			if err != nil {
+				return header, err
+			}
 		} else if strings.Contains(v, "User-Agent") {
 			header.userAgent = splitHeaderStr(v)
 		} else if strings.Contains(v, "Accept:") {
@@ -76,7 +86,7 @@ func parseBuf(recv string) httpHeader {
 		}
 	}
 	fmt.Printf("header is %+v\n", header)
-	return header
+	return header, nil
 }
 
 func http1_0() {
@@ -95,7 +105,13 @@ func http1_0() {
 		recvbuf := make([]byte, 1500)
 		n, clientsa, err := syscall.Recvfrom(nfd, recvbuf, 0)
 
-		httpcontent := parseBuf(string(recvbuf[:n]))
+		httpcontent, err := parseBuf(string(recvbuf[:n]))
+		if err != nil {
+			b.Write([]byte(fmt.Sprintf("HTTP/1.1 %d Unauthorized\r\n", 401)))
+			b.Write([]byte(fmt.Sprintf("Date: %s\r\n", t.Format(time.RFC1123))))
+			syscall.Sendmsg(nfd, b.Bytes(), nil, clientsa, 0)
+			syscall.Close(nfd)
+		}
 
 		// HTTPレスポンスの作成
 		b.Write([]byte(fmt.Sprintf("HTTP/1.0 %d OK\r\n", OK)))
