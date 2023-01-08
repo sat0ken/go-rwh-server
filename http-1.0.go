@@ -105,9 +105,7 @@ func doproxy(hosturl string) []byte {
 func http1_0() {
 
 	t := time.Now()
-
 	socket := makeServerSocket()
-	defer syscall.Close(socket)
 
 	for {
 		b := bytes.Buffer{}

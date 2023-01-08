@@ -12,7 +12,6 @@ var hello = []byte(`<html><body>hello</body></html>`)
 func http0_9() {
 
 	socket := makeServerSocket()
-	defer syscall.Close(socket)
 
 	for {
 		b := bytes.Buffer{}

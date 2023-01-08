@@ -19,6 +19,7 @@ import (
 var server = "http://127.0.0.1:18888"
 var githuburl = "http://github.com"
 var multipartdata stringFlags
+var headers stringFlags
 
 type stringFlags []string
 
@@ -177,6 +178,7 @@ func sendCookie() {
 	}
 }
 
+// 3.11　プロキシの利用
 func proxy(proxyto string) {
 	proxyUrl, err := url.Parse(proxyto)
 	if err != nil {
@@ -198,6 +200,46 @@ func proxy(proxyto string) {
 	log.Println(string(dump))
 }
 
+// 3.13　自由なメソッドの送信
+func sendHttpMethod(httpMethod string) {
+	client := &http.Client{}
+	request, err := http.NewRequest(httpMethod, server, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	resp, err := client.Do(request)
+	if err != nil {
+		log.Fatal(err)
+	}
+	dump, err := httputil.DumpResponse(resp, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(string(dump))
+}
+
+// 3.14　ヘッダーの送信
+func sendWithHeaders(headers []string) {
+	client := &http.Client{}
+	request, err := http.NewRequest("GET", server, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, v := range headers {
+		tmp := strings.Split(v, "=")
+		request.Header.Add(tmp[0], tmp[1])
+	}
+	resp, err := client.Do(request)
+	if err != nil {
+		log.Fatal(err)
+	}
+	dump, err := httputil.DumpResponse(resp, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(string(dump))
+}
+
 func main() {
 	var ishead bool
 	var dataUrlEncode string
@@ -205,6 +247,7 @@ func main() {
 	var postContent string
 	var cookie string
 	var proxyurl string
+	var httpMethod string
 
 	flag.BoolVar(&ishead, "head", false, "use HTTP HEAD")
 	flag.StringVar(&dataUrlEncode, "data-urlencode", "", "data for URL Encode")
@@ -213,6 +256,8 @@ func main() {
 	flag.Var(&multipartdata, "F", "send multipart form data")
 	flag.StringVar(&cookie, "b", "", "cookie value")
 	flag.StringVar(&proxyurl, "x", "", "set proxy URL")
+	flag.StringVar(&httpMethod, "X", "", "set HTTP Method")
+	flag.Var(&headers, "H", "Set HTTP Headers")
 	flag.Parse()
 
 	if ishead {
@@ -233,6 +278,10 @@ func main() {
 			sendCookie()
 		} else if len(proxyurl) != 0 {
 			proxy(proxyurl)
+		} else if len(httpMethod) != 0 {
+			sendHttpMethod(httpMethod)
+		} else if len(headers) != 0 {
+			sendWithHeaders(headers)
 		}
 	}
 
